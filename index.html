@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fff1f8">
+  <title>Cat Collector ♡</title>
+  <style>
+    :root {
+      --pink: #ef8fbe;
+      --pink-dark: #b94f87;
+      --lavender: #c8b5ff;
+      --cream: #fff9fc;
+      --ink: #50384d;
+      --mint: #c9f3e2;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; color: var(--ink);
+      font-family: ui-rounded, "Trebuchet MS", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 10% 15%, #ffe0ef 0 5%, transparent 5.5%),
+        radial-gradient(circle at 90% 25%, #e8ddff 0 4%, transparent 4.5%),
+        linear-gradient(135deg, #fff8fc, #f8f2ff 55%, #fff4fa);
+      display: grid; place-items: center; padding: 20px;
+    }
+    .app {
+      width: min(760px, 100%); background: rgba(255,255,255,.88);
+      border: 2px solid #f4c9e0; border-radius: 26px; padding: clamp(16px, 4vw, 30px);
+      box-shadow: 0 18px 50px #b96a9820;
+    }
+    header { text-align: center; }
+    .eyebrow { letter-spacing: .16em; text-transform: uppercase; color: var(--pink-dark); font-size: .75rem; font-weight: 800; }
+    h1 { margin: 8px 0 4px; font-size: clamp(2rem, 7vw, 3rem); color: var(--pink-dark); }
+    .subtitle { margin: 0 auto 18px; max-width: 490px; line-height: 1.5; }
+    .stats { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 15px 0; }
+    .pill { background: #fff0f7; border: 1px solid #f2c7de; border-radius: 999px; padding: 8px 13px; font-weight: 700; }
+    .game-wrap { position: relative; }
+    canvas {
+      display: block; width: 100%; max-width: 560px; aspect-ratio: 1 / 1;
+      margin: 0 auto; border: 3px solid #efc0d9; border-radius: 18px;
+      background: #fffafd; image-rendering: pixelated; touch-action: none;
+    }
+    .overlay {
+      position: absolute; inset: 0; display: grid; place-items: center; text-align: center;
+      padding: 20px; background: #fff8f4d9; border-radius: 18px;
+    }
+    .overlay-card { max-width: 310px; background: white; padding: 22px; border: 2px solid #f2c7de; border-radius: 20px; box-shadow: 0 8px 24px #a34b7520; }
+    .big-cat { font-size: 3.3rem; line-height: 1.2; }
+    .overlay h2 { margin: 8px 0; color: var(--pink-dark); }
+    button {
+      border: 0; border-radius: 999px; padding: 11px 17px; cursor: pointer;
+      background: var(--pink); color: #fff; font: inherit; font-weight: 800;
+      box-shadow: 0 4px 0 #ce6da1; transition: transform .08s ease, filter .15s ease;
+    }
+    button:hover { filter: brightness(1.04); }
+    button:active { transform: translateY(3px); box-shadow: 0 1px 0 #ce6da1; }
+    .secondary { background: #e5dcff; color: #59477d; box-shadow: 0 4px 0 #c3b0f1; }
+    .controls { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 15px 0 8px; }
+    .dpad { display: grid; grid-template-columns: repeat(3, 48px); grid-template-rows: repeat(2, 42px); gap: 5px; justify-content: center; margin: 12px auto; }
+    .dpad button { border-radius: 12px; padding: 5px; font-size: 1.2rem; }
+    .dpad .up { grid-column: 2; } .dpad .left { grid-column: 1; grid-row: 2; }
+    .dpad .down { grid-column: 2; grid-row: 2; } .dpad .right { grid-column: 3; grid-row: 2; }
+    .help { text-align: center; font-size: .9rem; line-height: 1.6; color: #806780; }
+    footer { text-align: center; margin-top: 18px; color: #a17b9a; font-size: .82rem; }
+    .hidden { display: none !important; }
+    @media (min-width: 620px) { .mobile-controls { display: none; } }
+    @media (max-width: 619px) { .app { padding: 15px; } .help .desktop { display: none; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div class="eyebrow">୨୧ edição rosa pastel ୨୧</div>
+      <h1>🐈 Cat Collector</h1>
+      <p class="subtitle">Ajude a gatinha a coletar peixinhos e morangos! Pegue os itens, faça pontos e evite bater nas paredes ou no próprio rastro. ♡</p>
+      <div class="stats" aria-live="polite">
+        <div class="pill">🍓 Pontos: <span id="score">0</span></div>
+        <div class="pill">🏆 Recorde: <span id="best">0</span></div>
+        <div class="pill">🐟 Itens: <span id="items">0</span></div>
+      </div>
+    </header>
+
+    <div class="game-wrap">
+      <canvas id="game" width="400" height="400" aria-label="Área do jogo Cat Collector"></canvas>
+      <div class="overlay" id="overlay">
+        <div class="overlay-card">
+          <div class="big-cat" id="overlayEmoji">🐱</div>
+          <h2 id="overlayTitle">Pronta para brincar?</h2>
+          <p id="overlayText">Use as setas do teclado ou os botões para coletar os petiscos. Cada item vale 10 pontos!</p>
+          <button id="startBtn">Começar a jogar ♡</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="pauseBtn" class="secondary" disabled>⏸ Pausar</button>
+      <button id="restartBtn" class="secondary">↻ Reiniciar</button>
+    </div>
+
+    <div class="mobile-controls">
+      <div class="dpad" aria-label="Controles direcionais">
+        <button class="up" data-dir="up" aria-label="Cima">▲</button>
+        <button class="left" data-dir="left" aria-label="Esquerda">◀</button>
+        <button class="down" data-dir="down" aria-label="Baixo">▼</button>
+        <button class="right" data-dir="right" aria-label="Direita">▶</button>
+      </div>
+    </div>
+
+    <p class="help">
+      <span class="desktop">⌨️ Use as setas ou WASD para mover · Espaço para pausar.</span>
+      <span class="mobile">📱 No celular, use os botões direcionais.</span><br>
+      🍓 Morango e 🐟 peixe valem 10 pontos cada.
+    </p>
+    <footer>Feito com código, carinho e patinhas. ♡</footer>
+  </main>
+
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const scoreEl = document.getElementById('score');
+  const bestEl = document.getElementById('best');
+  const itemsEl = document.getElementById('items');
+  const overlay = document.getElementById('overlay');
+  const overlayEmoji = document.getElementById('overlayEmoji');
+  const overlayTitle = document.getElementById('overlayTitle');
+  const overlayText = document.getElementById('overlayText');
+  const startBtn = document.getElementById('startBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const restartBtn = document.getElementById('restartBtn');
+
+  const cells = 20, tile = canvas.width / cells;
+  let snake, dir, nextDir, treat, score, items, timer, running = false, paused = false, gameOver = false;
+  let best = 0;
+  try { best = Number(localStorage.getItem('catCollectorBest') || 0); } catch (_) {}
+  bestEl.textContent = best;
+
+  function reset() {
+    clearInterval(timer);
+    snake = [{x: 8, y: 10}, {x: 7, y: 10}, {x: 6, y: 10}];
+    dir = {x: 1, y: 0}; nextDir = {x: 1, y: 0};
+    score = 0; items = 0; running = false; paused = false; gameOver = false;
+    scoreEl.textContent = score; itemsEl.textContent = items;
+    pauseBtn.disabled = true; pauseBtn.textContent = '⏸ Pausar';
+    spawnTreat(); draw();
+    showOverlay('🐱', 'Pronta para brincar?', 'Use as setas do teclado ou os botões para coletar os petiscos. Cada item vale 10 pontos!', 'Começar a jogar ♡');
+  }
+
+  function showOverlay(emoji, title, message, buttonText) {
+    overlayEmoji.textContent = emoji;
+    overlayTitle.textContent = title;
+    overlayText.textContent = message;
+    startBtn.textContent = buttonText;
+    overlay.classList.remove('hidden');
+  }
+  function hideOverlay() { overlay.classList.add('hidden'); }
+
+  function spawnTreat() {
+    do {
+      treat = {x: Math.floor(Math.random()*cells), y: Math.floor(Math.random()*cells), kind: Math.random() < .5 ? '🍓' : '🐟'};
+    } while (snake && snake.some(s => s.x === treat.x && s.y === treat.y));
+  }
+
+  function roundedRect(x, y, w, h, r, color) {
+    ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill();
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#fffafd'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Delicate checkerboard floor
+    for (let y=0; y<cells; y++) for (let x=0; x<cells; x++) {
+      if ((x+y)%2===0) { ctx.fillStyle='#fff4fa'; ctx.fillRect(x*tile,y*tile,tile,tile); }
+    }
+    // Tiny sparkles
+    ctx.fillStyle = '#f3c3dd';
+    [[2,2],[17,3],[3,16],[17,17],[10,2],[2,10],[18,10]].forEach(([x,y]) => {
+      ctx.fillRect(x*tile+8,y*tile+8,3,3);
+    });
+    if (treat) {
+      ctx.font = '17px system-ui, Apple Color Emoji, Segoe UI Emoji'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(treat.kind, treat.x*tile+tile/2, treat.y*tile+tile/2+1);
+    }
+    if (snake) snake.forEach((part, i) => {
+      const x=part.x*tile+2, y=part.y*tile+2, size=tile-4;
+      if (i===0) {
+        roundedRect(x,y,size,size,7,'#e98fbd');
+        // ears
+        ctx.fillStyle='#e98fbd';
+        ctx.beginPath(); ctx.moveTo(x+3,y+7); ctx.lineTo(x+5,y-1); ctx.lineTo(x+11,y+4); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(x+size-3,y+7); ctx.lineTo(x+size-5,y-1); ctx.lineTo(x+size-11,y+4); ctx.fill();
+        ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(x+7,y+10,1.5,0,Math.PI*2); ctx.arc(x+size-7,y+10,1.5,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#73445f'; ctx.beginPath(); ctx.arc(x+7,y+10,0.7,0,Math.PI*2); ctx.arc(x+size-7,y+10,0.7,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#b94f87'; ctx.beginPath(); ctx.arc(x+size/2,y+14,1.3,0,Math.PI*2); ctx.fill();
+      } else {
+        roundedRect(x,y,size,size,5, i%2 ? '#c8b5ff' : '#dfd3ff');
+        ctx.fillStyle='#fff'; ctx.fillRect(x+5,y+5,3,3);
+      }
+    });
+  }
+
+  function start() {
+    if (running && !paused) return;
+    if (gameOver) reset();
+    running = true; paused = false; gameOver = false; hideOverlay();
+    pauseBtn.disabled = false; pauseBtn.textContent = '⏸ Pausar';
+    clearInterval(timer); timer = setInterval(tick, Math.max(75, 145 - Math.floor(score/40)*5));
+  }
+
+  function tick() {
+    if (!running || paused || gameOver) return;
+    dir = nextDir;
+    const head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
+    const eating = head.x===treat.x && head.y===treat.y;
+    if (head.x<0 || head.x>=cells || head.y<0 || head.y>=cells ||
+        snake.slice(0, eating ? undefined : -1).some(p => p.x===head.x && p.y===head.y)) {
+      endGame(); return;
+    }
+    snake.unshift(head);
+    if (eating) {
+      score += 10; items += 1;
+      scoreEl.textContent = score; itemsEl.textContent = items;
+      if (score > best) {
+        best = score; bestEl.textContent = best;
+        try { localStorage.setItem('catCollectorBest', String(best)); } catch (_) {}
+      }
+      spawnTreat();
+      // Gradually speed up, but keep it playable.
+      clearInterval(timer); timer = setInterval(tick, Math.max(75, 145 - Math.floor(score/40)*5));
+    } else snake.pop();
+    draw();
+  }
+
+  function endGame() {
+    clearInterval(timer); running = false; gameOver = true;
+    pauseBtn.disabled = true;
+    draw();
+    showOverlay('😿', 'Ops! A gatinha tropeçou!', `Você fez ${score} pontos e coletou ${items} petisco(s). Tente novamente para bater seu recorde!`, 'Jogar novamente ♡');
+  }
+
+  function changeDirection(name) {
+    const map = {up:{x:0,y:-1}, down:{x:0,y:1}, left:{x:-1,y:0}, right:{x:1,y:0}};
+    const candidate = map[name];
+    if (!candidate) return;
+    if (candidate.x === -dir.x && candidate.y === -dir.y) return;
+    nextDir = candidate;
+    if (!running && !gameOver) start();
+  }
+
+  document.addEventListener('keydown', e => {
+    const keys = {ArrowUp:'up', w:'up', W:'up', ArrowDown:'down', s:'down', S:'down',
+      ArrowLeft:'left', a:'left', A:'left', ArrowRight:'right', d:'right', D:'right'};
+    if (keys[e.key]) { e.preventDefault(); changeDirection(keys[e.key]); }
+    if (e.code === 'Space') { e.preventDefault(); togglePause(); }
+  });
+  document.querySelectorAll('[data-dir]').forEach(btn => {
+    btn.addEventListener('click', () => changeDirection(btn.dataset.dir));
+    btn.addEventListener('pointerdown', e => { e.preventDefault(); changeDirection(btn.dataset.dir); });
+  });
+
+  function togglePause() {
+    if (!running || gameOver) return;
+    paused = !paused;
+    pauseBtn.textContent = paused ? '▶ Continuar' : '⏸ Pausar';
+    if (paused) showOverlay('☕', 'Pausa para o café!', 'A gatinha está descansando. Continue quando estiver pronta.', 'Continuar ♡');
+    else hideOverlay();
+  }
+  startBtn.addEventListener('click', () => {
+    if (paused) { paused = false; hideOverlay(); pauseBtn.textContent = '⏸ Pausar'; return; }
+    start();
+  });
+  pauseBtn.addEventListener('click', togglePause);
+  restartBtn.addEventListener('click', reset);
+  reset();
+})();
+</script>
+</body>
+</html>
